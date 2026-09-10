@@ -1,0 +1,47 @@
+name: Jellyfin 12 validation
+
+on:
+  push:
+    branches:
+      - feature/jellyfin-12-support
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jellyfin12-rating-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore Jellyfin project
+        run: dotnet restore RatingStandardizer.Jellyfin/RatingStandardizer.Jellyfin.csproj -nologo /p:NuGetAudit=false
+
+      - name: Publish Jellyfin 12 test build
+        run: dotnet publish RatingStandardizer.Jellyfin/RatingStandardizer.Jellyfin.csproj -c Release --no-restore -o artifacts/publish -nologo /p:NuGetAudit=false
+
+      - name: Package test build
+        run: |
+          mkdir -p artifacts/package
+          cp artifacts/publish/Jellyfin.Plugin.RatingStandardizer.dll artifacts/package/
+          (cd artifacts/package && zip -r ../rating-standardizer-jellyfin12-test.zip .)
+
+      - name: Upload test artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rating-standardizer-jellyfin12-${{ github.sha }}
+          path: artifacts/rating-standardizer-jellyfin12-test.zip
+          retention-days: 3
+          if-no-files-found: error
