@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - feature/jellyfin-12-support
+    paths:
+      - 'RatingStandardizer.Jellyfin/**'
+      - 'RatingStandardizer.Core/**'
   workflow_dispatch:
 
 permissions:
